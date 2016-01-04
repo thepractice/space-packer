@@ -127,29 +127,35 @@ $(document).ready(function() {
       // Manipulate the scale based on direction
       if (direction > 0) {
         main_layer_zoom_scale = old_scale + direction * Math.pow(old_scale, 2);
+        /*
         console.log('new scale');
         console.log(main_layer_zoom_scale);
         console.log('old scale');
         console.log(old_scale);
         console.log('direction');
         console.log(direction);
+        */
 
       } else if (old_scale < 1) {
         main_layer_zoom_scale = old_scale + direction * Math.pow(old_scale, 2);
+        /*
         console.log('new scale');
         console.log(main_layer_zoom_scale);
         console.log('old scale');
         console.log(old_scale);
         console.log('direction');
         console.log(direction);
+        */
       } else {
         main_layer_zoom_scale = old_scale + direction / 3;
+        /*
         console.log('new scale');
         console.log(main_layer_zoom_scale);
         console.log('old scale');
         console.log(old_scale);
         console.log('direction');
         console.log(direction);
+        */
 
       }
 

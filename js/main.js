@@ -12,12 +12,13 @@ $(document).ready(function() {
 });
 
 // Global variables
-var globalWidth = 10000;
+var globalWidth = 40000;
 var rect_array = [];
 var spaces = [];
 var initialScale = 0.1;
 var main_layer_zoom_scalemax = 10;
 var main_layer_zoom_scalemin = 0.05;
+var pages = 5;
 
 
 initPinterestSDK = function() {
@@ -28,7 +29,6 @@ initPinterestSDK = function() {
       });
 
       var session = JSON.parse(localStorage.getItem('session'));
-      console.log(session);
 
       PDK.setSession(session, function(response) {
         if (!response || !response.session) {
@@ -85,7 +85,7 @@ pinterestLoginSuccess = function() {
 }
 
 getPins = function(session) {
-
+/*
   PDK.me('pins', {
       access_token: session.accessToken, // Change this
       limit: 100,
@@ -100,6 +100,39 @@ getPins = function(session) {
     }
 
   });
+*/
+
+// pagination
+
+  var pins = [];
+  var counter = 0;
+  PDK.request('/me/pins/', {
+    access_token: session.accessToken,
+    fields: 'id,creator,color,board,image[original,medium,large,small]'
+  }, function (response) {
+
+    if (!response || response.error) {
+      alert('Error occurred');
+    } else {
+      pins = pins.concat(response.data);
+    //  console.log(pins);
+      counter += 1;
+
+      if (response.hasNext && counter < pages) {
+        response.next(); // this will recursively go to this same callback
+      }
+
+      if (!response.hasNext || counter >= pages) {
+
+        addPins(pins, pinCallbackFunction);
+
+
+      }
+
+    }
+
+  });
+
 
 }
 
@@ -114,7 +147,7 @@ addPins = function(pins, pinCallback) {
   	r.url = url;
   	rect_array.push(r);
   }
-  console.log(rect_array);
+
   pinCallback();
 }
 
@@ -148,6 +181,10 @@ generateRects = function(n) {
 initSpaces = function() {
 
 	var firstSpace = new rectangle(globalWidth, globalWidth, - globalWidth / 2, - globalWidth / 2);
+	/*
+	graphics.beginFill('0x1099bb');
+	graphics.drawRect(firstSpace.x, firstSpace.y, firstSpace.width, firstSpace.height);
+	*/
 	firstSpace.corner = getClosestCorner(firstSpace);
 	firstSpace.distance = getDistance(firstSpace.corner);
 	spaces.push(firstSpace);
@@ -162,7 +199,13 @@ initPlacement = function() {
 	updateSpaces(r1);
 
 	rDraw = convertCoord(r1);
-	graphics.drawRect(rDraw.x, rDraw.y, rDraw.width, rDraw.height);
+
+
+	var sprite = PIXI.Sprite.fromImage(rDraw.url);
+	sprite.position.x = rDraw.x;
+	sprite.position.y = rDraw.y;
+	graphicLayer.addChild(sprite);
+
 	renderer.render(stage);
 
 	var r2 = rect_array[1];
@@ -171,7 +214,10 @@ initPlacement = function() {
 	updateSpaces(r2);
 
 	rDraw = convertCoord(r2);
-	graphics.drawRect(rDraw.x, rDraw.y, rDraw.width, rDraw.height);
+	var sprite = PIXI.Sprite.fromImage(rDraw.url);
+	sprite.position.x = rDraw.x;
+	sprite.position.y = rDraw.y;
+	graphicLayer.addChild(sprite);
 	renderer.render(stage);
 
 }
@@ -229,15 +275,19 @@ placeRect = function(r) {
 	rDraw = convertCoord(r);
 	var randColor = '0x'+Math.floor(Math.random()*16777215).toString(16);
 	graphics.beginFill(randColor);
-//	console.log(randColor);
 //	graphics.beginFill('0x1099bb');
 //	graphics.drawRect(rDraw.x, rDraw.y, rDraw.width, rDraw.height);
 
-	console.log(rDraw.url);
+
+
+
+
 
 	var sprite = PIXI.Sprite.fromImage(rDraw.url);
 	sprite.position.x = rDraw.x;
 	sprite.position.y = rDraw.y;
+//	sprite.width = sprite.width / 1;
+//	sprite.height = sprite.height / 1;
 	graphicLayer.addChild(sprite);
 
 	renderer.render(stage);
