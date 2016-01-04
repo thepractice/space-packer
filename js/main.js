@@ -1,10 +1,13 @@
 $(document).ready(function() {
 
 	drawPixi();
-	generateRects(700);
-	initSpaces();
-	initPlacement();
-	processRects(rect_array);
+//	generateRects(700);
+
+	initPinterestSDK();
+//	console.log(rect_array);
+//	initSpaces();
+//	initPlacement();
+//	processRects(rect_array);
 
 });
 
@@ -15,6 +18,112 @@ var spaces = [];
 var initialScale = 0.1;
 var main_layer_zoom_scalemax = 10;
 var main_layer_zoom_scalemin = 0.05;
+
+
+initPinterestSDK = function() {
+  window.pAsyncInit = function() {
+      PDK.init({
+          appId: "4794481293328913447", // Change this
+          cookie: true
+      });
+
+      var session = JSON.parse(localStorage.getItem('session'));
+      console.log(session);
+
+      PDK.setSession(session, function(response) {
+        if (!response || !response.session) {
+          alert('Session was not set. Please log in.');
+        } else {
+          // session has been set
+          console.log('session set');
+          getPins(session);
+        }
+      })
+
+
+  };
+
+  (function(d, s, id){
+      var js, pjs = d.getElementsByTagName(s)[0];
+      if (d.getElementById(id)) {return;}
+      js = d.createElement(s); js.id = id;
+      js.src = "//assets.pinterest.com/sdk/sdk.js";
+      pjs.parentNode.insertBefore(js, pjs);
+  }(document, 'script', 'pinterest-jssdk'));
+
+}
+
+pinterestLogin = function() {
+  PDK.login({scope : 'read_public, write_public'}, function(session) {
+    if (!session) {
+      alert('The user chose not to grant permissions or closed the pop-up');
+    } else {
+      console.log('Thanks for authenticating. Getting your information...');
+      PDK.me(function(response) {
+        if (!response || response.error) {
+          alert('Oops, there was a problem getting your information');
+        } else {
+          console.log('Welcome,  ' + response.data.first_name + '!');
+          pinterestLoginSuccess();
+        }
+      });
+    }
+  });
+
+}
+
+pinterestLoginSuccess = function() {
+  var session = PDK.getSession();
+  if (!session) {
+    alert('No session has been set.');
+  } else {
+    // save session to server
+    localStorage.setItem('session', JSON.stringify(session));
+  }
+  getPins(session);
+
+}
+
+getPins = function(session) {
+
+  PDK.me('pins', {
+      access_token: session.accessToken, // Change this
+      limit: 100,
+      fields: 'id,creator,color,board,image[original,medium,large,small]'
+    }, function(response) {
+    if (!response || response.error) {
+      alert('Error occurred');
+    } else {
+      var pins = response.data;
+      addPins(pins, pinCallbackFunction);
+      console.log(pins);
+    }
+
+  });
+
+}
+
+addPins = function(pins, pinCallback) {
+
+  for (var i=0; i<pins.length; i++) {
+  	var image = pins[i].image.original;
+  	var width = image.width;
+  	var height = image.height;
+  	var url = image.url;
+  	var r = new rectangle(width, height);
+  	r.url = url;
+  	rect_array.push(r);
+  }
+  console.log(rect_array);
+  pinCallback();
+}
+
+pinCallbackFunction = function() {
+	initSpaces();
+	initPlacement();
+	processRects(rect_array);
+}
+
 
 rectangle = function(width, height, x, y) {
 
@@ -122,7 +231,15 @@ placeRect = function(r) {
 	graphics.beginFill(randColor);
 //	console.log(randColor);
 //	graphics.beginFill('0x1099bb');
-	graphics.drawRect(rDraw.x, rDraw.y, rDraw.width, rDraw.height);
+//	graphics.drawRect(rDraw.x, rDraw.y, rDraw.width, rDraw.height);
+
+	console.log(rDraw.url);
+
+	var sprite = PIXI.Sprite.fromImage(rDraw.url);
+	sprite.position.x = rDraw.x;
+	sprite.position.y = rDraw.y;
+	graphicLayer.addChild(sprite);
+
 	renderer.render(stage);
 
 	updateSpaces(r);
@@ -340,6 +457,7 @@ convertCoord = function(r) {
 	rDraw.y = - r.y + globalWidth / 2 - r.height;
 	rDraw.width = r.width;
 	rDraw.height = r.height;
+	rDraw.url = 'https://crossorigin.me/' + r.url;
 	return rDraw;
 }
 
@@ -364,7 +482,7 @@ drawPixi = function() {
   mainLayer = new PIXI.Container;
   stage.interactive = true;
   stage.hitArea = new PIXI.Rectangle(0, 0, renderer.width, renderer.height);
-  var graphicLayer = new PIXI.Container;
+  graphicLayer = new PIXI.Container;
   graphics = new PIXI.Graphics();
 
  // graphics.lineStyle(2, 0xFFFF00);
