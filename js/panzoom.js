@@ -173,6 +173,10 @@ $(document).ready(function() {
       mainLayer.position.set(main_layer_zoom_offset_x, main_layer_zoom_offset_y);
 
       //Animate the stage
+
+      updateRes(main_layer_zoom_scale);
+
+
       requestAnimationFrame(animate);
 
   }
