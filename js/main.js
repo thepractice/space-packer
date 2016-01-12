@@ -17,10 +17,11 @@ $(document).ready(function() {
 var globalWidth = 40000;
 var rect_array = [];
 var spaces = [];
+var image_array = [];
 var initialScale = 0.1;
 var main_layer_zoom_scalemax = 10;
 var main_layer_zoom_scalemin = 0.05;
-var pages = 5;
+var pages = 15;
 var hiRes = 0;
 
 loadSampleImages = function() {
@@ -296,6 +297,7 @@ function processRects(rect_array, completionCallback) {
     var img = new Image();
     img.setAttribute('crossOrigin', 'anonymous');
     img.src = rDraw.url;
+    image_array.push(img);
     imagesLoaded(img, function() {
 
       var canvas = document.createElement('canvas');
@@ -319,6 +321,7 @@ function processRects(rect_array, completionCallback) {
     //  var sprite = PIXI.Sprite.fromImage(rDraw.url);
       sprite.position.x = rDraw.x;
       sprite.position.y = rDraw.y;
+      sprite.hiRes = 0;
 
       sprite.width = rDraw.width;
       sprite.height = rDraw.height;
@@ -372,58 +375,92 @@ function processRects(rect_array, completionCallback) {
 	setTimeout(doIt, 0);
 }
 
-updateRes = function(scale) {
-  console.log(scale);
-  if (scale > 0.15 && hiRes == 0){
+updateRes = function() {
+  var scale = main_layer_zoom_scale;
+  var viewTop = - mainLayer.position.y / scale;
+  var viewBottom = (- mainLayer.position.y + renderer.height ) / scale;
+  var viewLeft = -mainLayer.position.x / scale;
+  var viewRight = (- mainLayer.position.x + renderer.width ) /scale;
+  var viewWidth = renderer.width /scale;
+  var viewHeight = renderer.height /scale;
+
+  var view = new rectangle(viewWidth, viewHeight, viewLeft, viewTop);
+
+  if (scale > 0.15){
     console.log('making hi res');
 
     var sprites = graphicLayer.children;
 
     for (var i=0; i<sprites.length; i++) {
-      var url = 'https://crossorigin.me/' + rect_array[i].url;
 
-      var hiResTexture = new PIXI.Texture.fromImage(url);
+      var rDraw = convertCoord(rect_array[i]);
+      // If in View
+      if (checkIntersection(view, rDraw)) {
+        sprites[i].visible = true;
+        if (sprites[i].hiRes == 0) {
 
-      sprites[i].texture = hiResTexture;
+          var url = 'https://crossorigin.me/' + rect_array[i].url;
 
+          var hiResTexture = new PIXI.Texture.fromImage(url);
+       //  console.log(image_array[i]);
+       //   var hiResTexture = new PIXI.Texture.fromImage(image_array[i].src);
+
+          sprites[i].texture = hiResTexture;
+          sprites[i].hiRes = 1;
+
+          hiResTexture.on('update', function() {
+            requestAnimationFrame(animate);
+          });
+
+        }
+      // If not in View
+      } else {
+        sprites[i].visible = false;
+      }
 
     }
     hiRes = 1;
-  } else if (scale <= 0.15 && hiRes ==1) {
+  } else if (scale <= 0.15 && hiRes == 1) {
     console.log('making low res');
 
 
     var sprites = graphicLayer.children;
-    console.log(sprites);
+
 
     for (var j=0; j<sprites.length; j++) {
-      console.log(j);
 
-      var rDraw = rect_array[j];
-      rDraw.url = 'https://crossorigin.me/' + rDraw.url;
-      var img = new Image();
-      img.setAttribute('crossOrigin', 'anonymous');
-      img.src = rDraw.url;
+      sprites[j].visible = true;
+
+      if (sprites[j].hiRes) {
+
+        var rDraw = convertCoord(rect_array[j]);
+       // rDraw.url = 'https://crossorigin.me/' + rDraw.url;
+        var img = new Image();
+        img.setAttribute('crossOrigin', 'anonymous');
+        img.src = rDraw.url;
 
 
-      var canvas = document.createElement('canvas');
-      var context = canvas.getContext('2d');
+        var canvas = document.createElement('canvas');
+        var context = canvas.getContext('2d');
 
-      var p = rDraw.width / 20;
-      var q = rDraw.height / 20;
+        var p = rDraw.width / 20;
+        var q = rDraw.height / 20;
 
-      canvas.width = p;
-      canvas.height = q;
-      canvas.style.width = rDraw.width + 'px';
-      canvas.style.height = rDraw.height + 'px';
+        canvas.width = p;
+        canvas.height = q;
+        canvas.style.width = rDraw.width + 'px';
+        canvas.style.height = rDraw.height + 'px';
 
-      context.drawImage(img, 0, 0, p, q);
+        context.drawImage(img, 0, 0, p, q);
 
-      var texture5 = new PIXI.Texture.fromCanvas(canvas);
-      console.log(sprites);
-      console.log(j);
-      console.log(sprites[j]);
-      sprites[j].texture = texture5;
+        var texture5 = new PIXI.Texture.fromCanvas(canvas);
+
+        sprites[j].texture = texture5;
+        sprites[j].hiRes = 0;
+
+      }
+
+
 
 
 
@@ -431,6 +468,7 @@ updateRes = function(scale) {
   hiRes = 0;
   }
 
+  requestAnimationFrame(animate);
 }
 
 placeRect = function(r) {

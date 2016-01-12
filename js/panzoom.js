@@ -63,7 +63,8 @@ $(document).ready(function() {
           mainLayer.position.set(main_layer_zoom_offset_x, main_layer_zoom_offset_y);
 
           // Animate the stage
-          requestAnimationFrame(animate);
+          //requestAnimationFrame(animate);
+          updateRes();
       }
   };
 
@@ -174,10 +175,10 @@ $(document).ready(function() {
 
       //Animate the stage
 
-      updateRes(main_layer_zoom_scale);
+      updateRes();
 
 
-      requestAnimationFrame(animate);
+
 
   }
 
