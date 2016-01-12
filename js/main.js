@@ -373,7 +373,8 @@ function processRects(rect_array, completionCallback) {
 }
 
 updateRes = function(scale) {
-  if (scale > 0.7 && hiRes == 0){
+  console.log(scale);
+  if (scale > 0.15 && hiRes == 0){
     console.log('making hi res');
 
     var sprites = graphicLayer.children;
@@ -388,7 +389,7 @@ updateRes = function(scale) {
 
     }
     hiRes = 1;
-  } else if (scale <= 0.7 && hiRes ==1) {
+  } else if (scale <= 0.15 && hiRes ==1) {
     console.log('making low res');
 
 
@@ -403,27 +404,27 @@ updateRes = function(scale) {
       var img = new Image();
       img.setAttribute('crossOrigin', 'anonymous');
       img.src = rDraw.url;
-   //   imagesLoaded(img, function() {
 
-        var canvas = document.createElement('canvas');
-        var context = canvas.getContext('2d');
 
-        var p = rDraw.width / 20;
-        var q = rDraw.height / 20;
+      var canvas = document.createElement('canvas');
+      var context = canvas.getContext('2d');
 
-        canvas.width = p;
-        canvas.height = q;
-        canvas.style.width = rDraw.width + 'px';
-        canvas.style.height = rDraw.height + 'px';
+      var p = rDraw.width / 20;
+      var q = rDraw.height / 20;
 
-        context.drawImage(img, 0, 0, p, q);
+      canvas.width = p;
+      canvas.height = q;
+      canvas.style.width = rDraw.width + 'px';
+      canvas.style.height = rDraw.height + 'px';
 
-        var texture5 = new PIXI.Texture.fromCanvas(canvas);
-        console.log(sprites);
-        console.log(j);
-        console.log(sprites[j]);
-        sprites[j].texture = texture5;
-  //    });
+      context.drawImage(img, 0, 0, p, q);
+
+      var texture5 = new PIXI.Texture.fromCanvas(canvas);
+      console.log(sprites);
+      console.log(j);
+      console.log(sprites[j]);
+      sprites[j].texture = texture5;
+
 
 
     }
