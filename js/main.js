@@ -1,15 +1,8 @@
 $(document).ready(function() {
 
 	drawPixi();
-
 	initPinterestSDK();
-
-//loadSampleImages();
-
-//	console.log(rect_array);
-//	initSpaces();
-//	initPlacement();
-//	processRects(rect_array);
+// loadSampleImages();
 
 });
 
@@ -21,37 +14,13 @@ var image_array = [];
 var initialScale = 0.1;
 var main_layer_zoom_scalemax = 10;
 var main_layer_zoom_scalemin = 0.05;
-var pages = 15;
+var pages = 5;
 var hiRes = 0;
 
-loadSampleImages = function() {
-  var w = 391;
-  var h = 643;
-  var url = 'https://s-media-cache-ak0.pinimg.com/736x/39/7b/f4/397bf45d28d37011bc9b28fb2a80decd.jpg';
-  var r = new rectangle(w, h);
-  r.url = url;
-  rect_array.push(r);
-
-  var w2 = 498;
-  var h2 = 643;
-  var url2 = 'https://s-media-cache-ak0.pinimg.com/736x/6d/06/7a/6d067a9f36274c620d8a0186fa14a411.jpg';
-  r2 = new rectangle(w2, h2);
-  r2.url = url2;
-  rect_array.push(r2);
-
-  var w3 = 477;
-  var h3 = 643;
-  var url3 = 'https://s-media-cache-ak0.pinimg.com/736x/cf/51/e0/cf51e0b9d6b208ac944f48c649cbb109.jpg';
-  r3 = new rectangle(w3, h3);
-  r3.url = url3;
-  rect_array.push(r3);
-
-
-  pinCallbackFunction();
-}
-
-var pictures = [ { } ]
-
+/*
+ * Checks for pinterest session.
+ * If pinterest session is set, calling this function starts chain that ends in full rendering.
+ */
 initPinterestSDK = function() {
   window.pAsyncInit = function() {
       PDK.init({
@@ -71,7 +40,6 @@ initPinterestSDK = function() {
         }
       })
 
-
   };
 
   (function(d, s, id){
@@ -84,6 +52,10 @@ initPinterestSDK = function() {
 
 }
 
+/**
+ *  Login to Pinterest
+ *  Successullly loggin in results in chain that ends in full display.
+ */
 pinterestLogin = function() {
   PDK.login({scope : 'read_public, write_public'}, function(session) {
     if (!session) {
@@ -116,25 +88,8 @@ pinterestLoginSuccess = function() {
 }
 
 getPins = function(session) {
-/*
-  PDK.me('pins', {
-      access_token: session.accessToken, // Change this
-      limit: 100,
-      fields: 'id,creator,color,board,image[original,medium,large,small]'
-    }, function(response) {
-    if (!response || response.error) {
-      alert('Error occurred');
-    } else {
-      var pins = response.data;
-      addPins(pins, pinCallbackFunction);
-      console.log(pins);
-    }
 
-  });
-*/
-
-// pagination
-
+  // pagination Method
   var pins = [];
   var counter = 0;
   PDK.request('/me/pins/', {
@@ -156,16 +111,33 @@ getPins = function(session) {
 
         addPins(pins, pinCallbackFunction);
 
-
       }
 
     }
 
   });
 
+/* //// Alternate method to get pins using pinterest js sdk
+  PDK.me('pins', {
+      access_token: session.accessToken, // Change this
+      limit: 100,
+      fields: 'id,creator,color,board,image[original,medium,large,small]'
+    }, function(response) {
+    if (!response || response.error) {
+      alert('Error occurred');
+    } else {
+      var pins = response.data;
+      addPins(pins, pinCallbackFunction);
+      console.log(pins);
+    }
+  });
+*/
 
 }
 
+/**
+ *  Pushes pins to rect_array.
+ */
 addPins = function(pins, pinCallback) {
 
   for (var i=0; i<pins.length; i++) {
@@ -181,85 +153,100 @@ addPins = function(pins, pinCallback) {
   pinCallback();
 }
 
+/**
+ *  Packs rectangles.
+ *  Called after rect_array has been fully loaded.
+ */
 pinCallbackFunction = function() {
 	initSpaces();
 	initPlacement();
 	processRects(rect_array);
 }
 
-
-rectangle = function(width, height, x, y) {
+/**
+ *  Rectangle Object
+ */
+rectangle = function(width, height, x, y, url) {
 
 	this.width = width;
 	this.height = height;
 	this.x = x;
 	this.y = y;
+  this.url = url;
+
+  this.left = this.x;
+  this.top = this.y + this.height;;
+  this.right = this.x + this.width;
+  this.bottom = this.y;
 
 }
 
-generateRects = function(n) {
+updateRect = function(r) {
 
-	for (var i=0; i<n; i++) {
-		var w = 40 + Math.round(Math.random() * 500);
-		var h = 40 + Math.round(Math.random() * 500);
-		var r = new rectangle(w, h);
-		rect_array.push(r);
-	}
+  r.left = r.x;
+  r.top = r.y + r.height;;
+  r.right = r.x + r.width;
+  r.bottom = r.y;
 
 }
 
+/**
+ *  Creates first 'Space', which is giant rectangle.
+ */
 initSpaces = function() {
 
 	var firstSpace = new rectangle(globalWidth, globalWidth, - globalWidth / 2, - globalWidth / 2);
-	/*
-	graphics.beginFill('0x1099bb');
-	graphics.drawRect(firstSpace.x, firstSpace.y, firstSpace.width, firstSpace.height);
-	*/
 	firstSpace.corner = getClosestCorner(firstSpace);
 	firstSpace.distance = getDistance(firstSpace.corner);
 	spaces.push(firstSpace);
 
 }
 
+/**
+ * Places the first 2 rectangles.
+ */
 initPlacement = function() {
 
 	var r1 = rect_array[0];
 	r1.x = - r1.width / 2;
 	r1.y = - r1.height / 2;
+  updateRect(r1);
 	updateSpaces(r1);
 
-	rDraw = convertCoord(r1);
+  var r2 = rect_array[1];
+  r2.x = - r2.width / 2;
+  r2.y = r1.y + r1.height;
+  updateRect(r2);
+  updateSpaces(r2);
 
-	var sprite = PIXI.Sprite.fromImage(rDraw.url);
-	sprite.position.x = rDraw.x;
-	sprite.position.y = rDraw.y;
-	graphicLayer.addChild(sprite);
+  var firstTwo = [r1, r2];
 
-	renderer.render(stage);
+  for (var i=0; i<firstTwo.length; i++) {
 
-	var r2 = rect_array[1];
-	r2.x = - r2.width / 2;
-	r2.y = r1.y + r1.height;
-	updateSpaces(r2);
+    var rDraw = convertCoord(firstTwo[i]);
+    var sprite = PIXI.Sprite.fromImage(rDraw.url);
+    sprite.position.x = rDraw.x;
+    sprite.position.y = rDraw.y;
+    graphicLayer.addChild(sprite);
 
-	rDraw = convertCoord(r2);
-	var sprite = PIXI.Sprite.fromImage(rDraw.url);
-	sprite.position.x = rDraw.x;
-	sprite.position.y = rDraw.y;
-	graphicLayer.addChild(sprite);
+  }
+
 	renderer.render(stage);
 
 }
 
+/**
+ *  Places the remaining rectangles synchronously.
+ */
 function processRects(rect_array, completionCallback) {
-	processed = 2;
-	var result = [];
+  // starting index
+	var processed = 2;
 
-	function doIt() {
-		// process up to 1 rectangles at a time
-		//placeRect(rect_array[processed], rectCallback);
+  /**
+   * Places a single rectangle, using the index 'processed'.
+   */
+	function placeRect() {
 
-//////////////////////////////////////////////////////////////
     var r = rect_array[processed];
 
     for (var j=0; j<spaces.length; j++) {
@@ -279,7 +266,7 @@ function processRects(rect_array, completionCallback) {
         r.x = corner.x;
         r.y = corner.y - r.height;
       }
-
+      updateRect(r);
       var contains = checkContainment(r, space);
 
       // if the rectangle fits in the space, break the space loop and continue. otherwise keep looping through spaces.
@@ -289,10 +276,6 @@ function processRects(rect_array, completionCallback) {
     }
 
     rDraw = convertCoord(r);
-  //  var randColor = '0x'+Math.floor(Math.random()*16777215).toString(16);
-  //  graphics.beginFill(randColor);
-  //  graphics.beginFill('0x1099bb');
-  //  graphics.drawRect(rDraw.x, rDraw.y, rDraw.width, rDraw.height);
 
     var img = new Image();
     img.setAttribute('crossOrigin', 'anonymous');
@@ -300,25 +283,9 @@ function processRects(rect_array, completionCallback) {
     image_array.push(img);
     imagesLoaded(img, function() {
 
-      var canvas = document.createElement('canvas');
-      var context = canvas.getContext('2d');
+      var texture = getTextureFromCanvas(rDraw, img);
+      var sprite = new PIXI.Sprite(texture);
 
-      var p = rDraw.width / 20;
-      var q = rDraw.height / 20;
-
-      canvas.width = p;
-      canvas.height = q;
-      canvas.style.width = rDraw.width + 'px';
-      canvas.style.height = rDraw.height + 'px';
-
-      context.drawImage(img, 0, 0, p, q);
-
-      var texture5 = new PIXI.Texture.fromCanvas(canvas);
-
-      var sprite = new PIXI.Sprite(texture5);
-
-
-    //  var sprite = PIXI.Sprite.fromImage(rDraw.url);
       sprite.position.x = rDraw.x;
       sprite.position.y = rDraw.y;
       sprite.hiRes = 0;
@@ -335,78 +302,78 @@ function processRects(rect_array, completionCallback) {
 
       if (processed < rect_array.length) {
         // not finished, schedule another block.
-        setTimeout(doIt, 0);
+        setTimeout(placeRect, 0);
       } else {
         // processing complete... inform caller
         var timer = performance.now() / 1000;
         console.log(timer);
 
-
         renderer.render(stage);
-        if (completionCallback) completionCallback(result);
       }
 
-
     });
-
-  /*
-    var sprite = PIXI.Sprite.fromImage(rDraw.url);
-    sprite.position.x = rDraw.x;
-    sprite.position.y = rDraw.y;
-
-
-    graphicLayer.addChild(sprite);
-
-
-
-    renderer.render(stage);
-
-    updateSpaces(r);
-    */
-
-    /////////////////////////////
-
-
-
 
 	}
 
 	//Schedule computation start.
-	setTimeout(doIt, 0);
+	setTimeout(placeRect, 0);
 }
 
-updateRes = function() {
+/**
+ * Produces a texture from an image-rectangle, via Canvas.
+ */
+getTextureFromCanvas = function(rDraw, img) {
+
+  var canvas = document.createElement('canvas');
+  var context = canvas.getContext('2d');
+
+  var p = rDraw.width / 20;
+  var q = rDraw.height / 20;
+
+  canvas.width = p;
+  canvas.height = q;
+  canvas.style.width = rDraw.width + 'px';
+  canvas.style.height = rDraw.height + 'px';
+
+  context.drawImage(img, 0, 0, p, q);
+
+  var texture = new PIXI.Texture.fromCanvas(canvas);
+
+  return texture;
+
+}
+
+/**
+ * Updates sprites after zoom or pan.
+ */
+updateDisplay = function() {
   var scale = main_layer_zoom_scale;
   var viewTop = - mainLayer.position.y / scale;
-  var viewBottom = (- mainLayer.position.y + renderer.height ) / scale;
   var viewLeft = -mainLayer.position.x / scale;
-  var viewRight = (- mainLayer.position.x + renderer.width ) /scale;
   var viewWidth = renderer.width /scale;
   var viewHeight = renderer.height /scale;
 
   var view = new rectangle(viewWidth, viewHeight, viewLeft, viewTop);
 
+  // If zoomed in, make visible sprites hi-res and make off-screen sprites not visible.
   if (scale > 0.15){
-    console.log('making hi res');
 
     var sprites = graphicLayer.children;
 
     for (var i=0; i<sprites.length; i++) {
 
+      var sprite = sprites[i];
+
       var rDraw = convertCoord(rect_array[i]);
       // If in View
       if (checkIntersection(view, rDraw)) {
-        sprites[i].visible = true;
-        if (sprites[i].hiRes == 0) {
+        sprite.visible = true;
+        if (sprite.hiRes == 0) {
 
-          var url = 'https://crossorigin.me/' + rect_array[i].url;
+          var hiResTexture = new PIXI.Texture.fromImage(rDraw.url);
 
-          var hiResTexture = new PIXI.Texture.fromImage(url);
-       //  console.log(image_array[i]);
-       //   var hiResTexture = new PIXI.Texture.fromImage(image_array[i].src);
-
-          sprites[i].texture = hiResTexture;
-          sprites[i].hiRes = 1;
+          sprite.texture = hiResTexture;
+          sprite.hiRes = 1;
 
           hiResTexture.on('update', function() {
             requestAnimationFrame(animate);
@@ -414,55 +381,31 @@ updateRes = function() {
 
         }
       // If not in View
-      } else {
-        sprites[i].visible = false;
-      }
+      } else sprites[i].visible = false;
 
     }
     hiRes = 1;
+  // If zoomed out and displaying some hi-res sprites, display all sprites in low-res.
   } else if (scale <= 0.15 && hiRes == 1) {
-    console.log('making low res');
-
 
     var sprites = graphicLayer.children;
 
-
     for (var j=0; j<sprites.length; j++) {
+      var sprite = sprites[j];
 
-      sprites[j].visible = true;
+      sprite.visible = true;
 
-      if (sprites[j].hiRes) {
+      if (sprite.hiRes) {
 
         var rDraw = convertCoord(rect_array[j]);
-       // rDraw.url = 'https://crossorigin.me/' + rDraw.url;
         var img = new Image();
         img.setAttribute('crossOrigin', 'anonymous');
         img.src = rDraw.url;
-
-
-        var canvas = document.createElement('canvas');
-        var context = canvas.getContext('2d');
-
-        var p = rDraw.width / 20;
-        var q = rDraw.height / 20;
-
-        canvas.width = p;
-        canvas.height = q;
-        canvas.style.width = rDraw.width + 'px';
-        canvas.style.height = rDraw.height + 'px';
-
-        context.drawImage(img, 0, 0, p, q);
-
-        var texture5 = new PIXI.Texture.fromCanvas(canvas);
-
-        sprites[j].texture = texture5;
-        sprites[j].hiRes = 0;
+        var texture = getTextureFromCanvas(rDraw, img);
+        sprite.texture = texture;
+        sprite.hiRes = 0;
 
       }
-
-
-
-
 
     }
   hiRes = 0;
@@ -471,107 +414,22 @@ updateRes = function() {
   requestAnimationFrame(animate);
 }
 
-placeRect = function(r) {
-
-	for (var j=0; j<spaces.length; j++) {
-
-		var space = spaces[j];
-		var corner = space.corner;
-		if (corner.direction == 1) {
-			r.x = corner.x;
-			r.y = corner.y;
-		} else if (corner.direction == 2) {
-			r.x = corner.x - r.width;
-			r.y = corner.y;
-		} else if (corner.direction == 3) {
-			r.x = corner.x - r.width;
-			r.y = corner.y - r.height;
-		} else {
-			r.x = corner.x;
-			r.y = corner.y - r.height;
-		}
-
-		var contains = checkContainment(r, space);
-
-		// if the rectangle fits in the space, break the space loop and continue. otherwise keep looping through spaces.
-		if (contains == 'r1') {
-			break;
-		}
-	}
-
-	rDraw = convertCoord(r);
-//	var randColor = '0x'+Math.floor(Math.random()*16777215).toString(16);
-//	graphics.beginFill(randColor);
-//	graphics.beginFill('0x1099bb');
-//	graphics.drawRect(rDraw.x, rDraw.y, rDraw.width, rDraw.height);
-
-  var img = new Image();
-  img.src = rDraw.url;
-
-  imagesLoaded(img, function() {
-
-    var canvas = document.createElement('canvas');
-    var context = canvas.getContext('2d');
-
-    var p = rDraw.width / 20;
-    var q = rDraw.height / 20;
-
-    canvas.width = p;
-    canvas.height = q;
-    canvas.style.width = rDraw.width + 'px';
-    canvas.style.height = rDraw.height + 'px';
-
-    context.drawImage(img, 0, 0, p, q);
-
-    var texture5 = new PIXI.Texture.fromCanvas(canvas);
-    var sprite = new PIXI.Sprite(texture5);
-
-
-  //  var sprite = PIXI.Sprite.fromImage(rDraw.url);
-    sprite.position.x = rDraw.x;
-    sprite.position.y = rDraw.y;
-
-    sprite.width = rDraw.width;
-    sprite.height = rDraw.height;
-
-    graphicLayer.addChild(sprite);
-
-    renderer.render(stage);
-    updateSpaces(r);
-
-  });
-
-/*
-  var sprite = PIXI.Sprite.fromImage(rDraw.url);
-  sprite.position.x = rDraw.x;
-  sprite.position.y = rDraw.y;
-
-
-  graphicLayer.addChild(sprite);
-
-
-
-  renderer.render(stage);
-
-	updateSpaces(r);
-  */
-}
-
-
-
+/**
+ * Update the global 'spaces' array.
+ */
 updateSpaces = function(rectangle) {
-
 	var newSpaces = [];
 	for (var i=0; i<spaces.length; i++) {
+    var space = spaces[i];
 		// if rectangle intersects space
-		if (checkIntersection(rectangle, spaces[i])) {
+		if (checkIntersection(rectangle, space)) {
 			// generate new spaces
-			newerSpaces = getNewSpaces(rectangle, spaces[i]);
-			for (var j=0; j<newerSpaces.length; j++) {
-				newSpaces.push(newerSpaces[j]);
+			var freshSpaces = getNewSpaces(rectangle, space);
+			for (var j=0; j<freshSpaces.length; j++) {
+				newSpaces.push(freshSpaces[j]);
 			}
 		} else {
-			newSpaces.push(spaces[i]);
+			newSpaces.push(space);
 		}
 	}
 	spaces = newSpaces;
@@ -588,22 +446,12 @@ getNewSpaces = function(r1, r2) {
 
 	var newSpaces = [];
 
-	var left1 = r1.x;
-	var top1 = r1.y + r1.height;;
-	var right1 = r1.x + r1.width;
-	var bottom1 = r1.y;
-
-	var left2 = r2.x;
-	var top2 = r2.y + r2.height;
-	var right2 = r2.x + r2.width;
-	var bottom2 = r2.y;
-
 	//top
-	if (top1 < top2) {
+	if (r1.top < r2.top) {
 		var spaceX = r2.x;
-		var spaceY = top1;
+		var spaceY = r1.top;
 		var spaceWidth = r2.width;
-		var spaceHeight = top2 - top1;
+		var spaceHeight = r2.top - r1.top;
 		var newSpace = new rectangle(spaceWidth, spaceHeight, spaceX, spaceY);
 		newSpace.corner = getClosestCorner(newSpace);
 		newSpace.distance = getDistance(newSpace.corner);
@@ -611,10 +459,10 @@ getNewSpaces = function(r1, r2) {
 	}
 
 	//right
-	if (right1 < right2) {
-		var spaceX = right1;
+	if (r1.right < r2.right) {
+		var spaceX = r1.right;
 		var spaceY = r2.y;
-		var spaceWidth = right2 - right1;
+		var spaceWidth = r2.right - r1.right;
 		var spaceHeight = r2.height;
 		var newSpace = new rectangle(spaceWidth, spaceHeight, spaceX, spaceY);
 		newSpace.corner = getClosestCorner(newSpace);
@@ -623,7 +471,7 @@ getNewSpaces = function(r1, r2) {
 	}
 
 	//bottom
-	if (bottom1 > bottom2) {
+	if (r1.bottom > r2.bottom) {
 		var spaceX = r2.x;
 		var spaceY = r2.y;
 		var spaceWidth = r2.width;
@@ -635,7 +483,7 @@ getNewSpaces = function(r1, r2) {
 	}
 
 	//left
-	if (left1 > left2) {
+	if (r1.left > r2.left) {
 		var spaceX = r2.x;
 		var spaceY = r2.y;
 		var spaceWidth = r1.x - r2.x;
@@ -651,40 +499,19 @@ getNewSpaces = function(r1, r2) {
 
 checkIntersection = function(r1, r2) {
 
-	var left1 = r1.x;
-	var top1 = r1.y + r1.height;;
-	var right1 = r1.x + r1.width;
-	var bottom1 = r1.y;
-
-	var left2 = r2.x;
-	var top2 = r2.y + r2.height;
-	var right2 = r2.x + r2.width;
-	var bottom2 = r2.y;
-
-	if (left1 < right2 && right1 > left2 && bottom1 < top2 && top1 > bottom2) {
-
+	if (r1.left < r2.right && r1.right > r2.left && r1.bottom < r2.top && r1.top > r2.bottom) {
 		return true;
 	} else {
-
 		return false;
 	}
 }
 
 // returns the contained rectangle
 checkContainment = function(r1, r2) {
-	var left1 = r1.x;
-	var top1 = r1.y + r1.height;;
-	var right1 = r1.x + r1.width;
-	var bottom1 = r1.y;
 
-	var left2 = r2.x;
-	var top2 = r2.y + r2.height;
-	var right2 = r2.x + r2.width;
-	var bottom2 = r2.y;
-
-	if (left1 >= left2 && top1 <= top2 && right1 <= right2 && bottom1 >= bottom2) {
+	if (r1.left >= r2.left && r1.top <= r2.top && r1.right <= r2.right && r1.bottom >= r2.bottom) {
 		return 'r1';
-	} else if (left1 <= left2 && top1 >= top2 && right1 >= right2 && bottom1 <= bottom2) {
+	} else if (r1.left <= r2.left && r1.top >= r2.top && r1.right >= r2.right && r1.bottom <= r2.bottom) {
 		return 'r2';
 	} else {
 		return null;
@@ -765,6 +592,9 @@ getDistance = function(corner) {
 	return Math.sqrt(Math.pow(corner.x, 2) + Math.pow(corner.y, 2));
 }
 
+/**
+ * Converts rectangle object to new object with converted coordinates for use with Pixi.
+ */
 convertCoord = function(r) {
 	var rDraw = {};
 	rDraw.x = r.x + globalWidth / 2;
@@ -772,7 +602,6 @@ convertCoord = function(r) {
 	rDraw.width = r.width;
 	rDraw.height = r.height;
 	rDraw.url = 'https://crossorigin.me/' + r.url;
- // rDraw.url = 'http://cors.io/?u=' + r.url;
   rDraw.color = r.color;
 	return rDraw;
 }
@@ -780,7 +609,7 @@ convertCoord = function(r) {
 
 drawPixi = function() {
 
-  renderer = new PIXI.WebGLRenderer($(window).width(), $(window).height());
+  renderer = new PIXI.autoDetectRenderer($(window).width(), $(window).height());
   document.body.appendChild(renderer.view);
   stage = new PIXI.Container();
 
@@ -820,3 +649,29 @@ animate = function () {
 	renderer.render(stage);
 }
 
+/*
+ * Fills rect_array with sample images
+ */
+loadSampleImages = function() {
+
+  var r1 = new rectangle(391, 643, null, null, 'https://s-media-cache-ak0.pinimg.com/736x/39/7b/f4/397bf45d28d37011bc9b28fb2a80decd.jpg');
+  var r2 = new rectangle(498, 643, null, null, 'https://s-media-cache-ak0.pinimg.com/736x/6d/06/7a/6d067a9f36274c620d8a0186fa14a411.jpg');
+  var r3 = new rectangle(477, 643, null, null, 'https://s-media-cache-ak0.pinimg.com/736x/cf/51/e0/cf51e0b9d6b208ac944f48c649cbb109.jpg');
+  rect_array.push(r1, r2, r3);
+
+  pinCallbackFunction();
+}
+
+/**
+ *  Loads rect_array with random rectangles, without urls.
+ */
+generateRects = function(n) {
+
+  for (var i=0; i<n; i++) {
+    var w = 40 + Math.round(Math.random() * 500);
+    var h = 40 + Math.round(Math.random() * 500);
+    var r = new rectangle(w, h);
+    rect_array.push(r);
+  }
+
+}
