@@ -302,7 +302,7 @@ function processRects(rect_array, completionCallback) {
 
       if (processed < rect_array.length) {
         // not finished, schedule another block.
-        setTimeout(placeRect, 0);
+        placeRect();
       } else {
         // processing complete... inform caller
         var timer = performance.now() / 1000;
@@ -316,7 +316,7 @@ function processRects(rect_array, completionCallback) {
 	}
 
 	//Schedule computation start.
-	setTimeout(placeRect, 0);
+	placeRect();
 }
 
 /**
@@ -540,6 +540,7 @@ removeRedundantSpaces = function() {
 		return b - a;
 	});
 
+  // Make the array only contain unique elements.
 	var uniqueIndices = [containedIndices[0]];
 	for (var i=1; i<containedIndices.length; i++) {
 		if (containedIndices[i-1] !== containedIndices[i]) {
@@ -548,7 +549,6 @@ removeRedundantSpaces = function() {
 	}
 	containedIndices = uniqueIndices;
 
-
 	// remove the contained spaces from space array
 	for (var i=1; i<containedIndices.length; i++) {
 		spaces.splice(containedIndices[i], 1);
@@ -556,32 +556,33 @@ removeRedundantSpaces = function() {
 
 }
 
-getClosestCorner = function(r1) {
-	var left1 = r1.x;
-	var top1 = r1.y + r1.height;;
-	var right1 = r1.x + r1.width;
-	var bottom1 = r1.y;
+/*
+ * Gets corner closest to origin.
+ * 'Direction' of corner is the 'open' quadrant (1,2,3,4)
+ */
+getClosestCorner = function(r) {
+
 	var cornerX;
 	var cornerY;
 
-	var xMin = Math.min(Math.abs(left1), Math.abs(right1));
-	var yMin = Math.min(Math.abs(top1), Math.abs(bottom1));
+	var xMin = Math.min(Math.abs(r.left), Math.abs(r.right));
+	var yMin = Math.min(Math.abs(r.top), Math.abs(r.bottom));
 
-	if (xMin == Math.abs(left1) && yMin == Math.abs(top1)) {
-		cornerX = left1;
-		cornerY = top1;
+	if (xMin == Math.abs(r.left) && yMin == Math.abs(r.top)) {
+		cornerX = r.left;
+		cornerY = r.top;
 		direction = 4;
-	} else if (xMin == Math.abs(left1) && yMin == Math.abs(bottom1)) {
-		cornerX = left1;
-		cornerY = bottom1;
+	} else if (xMin == Math.abs(r.left) && yMin == Math.abs(r.bottom)) {
+		cornerX = r.left;
+		cornerY = r.bottom;
 		direction = 1;
-	} else if (xMin == Math.abs(right1) && yMin == Math.abs(top1)) {
-		cornerX = right1;
-		cornerY = top1;
+	} else if (xMin == Math.abs(r.right) && yMin == Math.abs(r.top)) {
+		cornerX = r.right;
+		cornerY = r.top;
 		direction = 3;
 	} else {
-		cornerX = right1;
-		cornerY = bottom1;
+		cornerX = r.right;
+		cornerY = r.bottom;
 		direction = 2;
 	}
 	return { x: cornerX, y: cornerY, direction: direction };
@@ -593,16 +594,19 @@ getDistance = function(corner) {
 }
 
 /**
- * Converts rectangle object to new object with converted coordinates for use with Pixi.
+ * Converts rectangle object to new rectangle object with converted coordinates for use with Pixi.
  */
 convertCoord = function(r) {
-	var rDraw = {};
-	rDraw.x = r.x + globalWidth / 2;
-	rDraw.y = - r.y + globalWidth / 2 - r.height;
-	rDraw.width = r.width;
-	rDraw.height = r.height;
-	rDraw.url = 'https://crossorigin.me/' + r.url;
+
+	var rDrawX = r.x + globalWidth / 2;
+	var rDrawY = - r.y + globalWidth / 2 - r.height;
+	var rDrawWidth = r.width;
+	var rDrawHeight = r.height;
+	var rDrawUrl = 'https://crossorigin.me/' + r.url;
+
+  var rDraw = new rectangle(rDrawWidth, rDrawHeight, rDrawX, rDrawY, rDrawUrl)
   rDraw.color = r.color;
+
 	return rDraw;
 }
 
@@ -625,18 +629,12 @@ drawPixi = function() {
   mousedown = false;
 
   mainLayer = new PIXI.Container;
+
+  // Make stage responsive to mouse clicks.
   stage.interactive = true;
   stage.hitArea = new PIXI.Rectangle(0, 0, renderer.width, renderer.height);
+
   graphicLayer = new PIXI.Container();
- // graphics = new PIXI.Graphics();
-
- // graphics.lineStyle(2, 0xFFFF00);
- // graphics.beginFill(0x1099bb);
-
- // var x_origin = renderer.width / 2;
- // var y_origin = renderer.height / 2;
-
- // graphicLayer.addChild(graphics);
   mainLayer.addChild(graphicLayer);
   stage.addChild(mainLayer);
 
